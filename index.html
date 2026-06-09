@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Тренажёр комбинаций — Холдем</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;900&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --felt-1:#0b3d2e; --felt-2:#0a2c22; --felt-edge:#06201a;
+    --gold:#d6b16a; --gold-dim:#9a8048;
+    --cream:#f4ecd8; --ink:#1a1a1a; --red:#c0392b;
+    --good:#5fb87a; --bad:#d96459;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    font-family:'Manrope',sans-serif;
+    background:
+      radial-gradient(ellipse 120% 90% at 50% 8%, rgba(255,255,255,.05), transparent 60%),
+      radial-gradient(ellipse 140% 120% at 50% 50%, var(--felt-1), var(--felt-2) 55%, var(--felt-edge));
+    color:var(--cream);
+    min-height:100vh;
+    display:flex; flex-direction:column; align-items:center;
+    padding:28px 18px 48px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .head{text-align:center; margin-bottom:6px;}
+  .head h1{
+    font-family:'Playfair Display',serif; font-weight:900;
+    font-size:clamp(26px,5vw,40px); letter-spacing:.5px; color:var(--gold);
+    text-shadow:0 2px 18px rgba(0,0,0,.4);
+  }
+  .head p{font-size:13px; color:rgba(244,236,216,.6); margin-top:4px; letter-spacing:.3px;}
+
+  .scoreboard{
+    display:flex; gap:26px; margin:18px 0 6px;
+    font-size:13px; letter-spacing:.5px;
+  }
+  .scoreboard .stat{text-align:center;}
+  .scoreboard .num{font-family:'Playfair Display',serif; font-size:24px; font-weight:700; color:var(--gold); display:block;}
+  .scoreboard .lbl{color:rgba(244,236,216,.55); text-transform:uppercase; font-size:10px;}
+
+  .table-area{
+    width:100%; max-width:640px;
+    margin:14px 0;
+    background:
+      radial-gradient(ellipse at 50% 40%, rgba(255,255,255,.04), transparent 70%);
+    border:1px solid rgba(214,177,106,.22);
+    border-radius:120px/60px;
+    padding:30px 22px 26px;
+    box-shadow:inset 0 0 60px rgba(0,0,0,.35), 0 18px 40px rgba(0,0,0,.3);
+  }
+  .zone-label{
+    text-align:center; font-size:10px; letter-spacing:2px; text-transform:uppercase;
+    color:rgba(244,236,216,.4); margin-bottom:10px;
+  }
+  .row{display:flex; justify-content:center; gap:8px; flex-wrap:wrap;}
+  .board{margin-bottom:22px;}
+
+  .card{
+    width:58px; height:82px; border-radius:8px;
+    background:linear-gradient(160deg,#fff,#f1ead7);
+    box-shadow:0 4px 10px rgba(0,0,0,.35);
+    position:relative; color:var(--ink);
+    font-family:'Manrope',sans-serif; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+    animation:deal .35s ease both;
+    transition:transform .18s, box-shadow .18s;
+  }
+  .card.red{color:var(--red);}
+  .card .corner{position:absolute; top:5px; left:6px; line-height:1; text-align:center;}
+  .card .corner .r{font-size:15px; font-weight:800;}
+  .card .corner .s{font-size:12px; margin-top:-1px;}
+  .card .pip{font-size:30px;}
+  .card.mine{box-shadow:0 0 0 2px var(--gold), 0 6px 14px rgba(0,0,0,.4);}
+  .card.win{transform:translateY(-10px); box-shadow:0 0 0 3px var(--good), 0 10px 18px rgba(0,0,0,.45);}
+  .card.dim{opacity:.4;}
+  @keyframes deal{from{opacity:0; transform:translateY(-16px) scale(.9);} to{opacity:1; transform:translateY(0) scale(1);}}
+
+  .mine-tag{font-size:10px; letter-spacing:2px; color:var(--gold); text-align:center; margin-bottom:8px; text-transform:uppercase;}
+
+  .answers{
+    width:100%; max-width:640px;
+    display:grid; grid-template-columns:repeat(3,1fr); gap:9px;
+    margin-top:8px;
+  }
+  .answers button{
+    font-family:'Manrope',sans-serif; font-weight:600; font-size:13px;
+    color:var(--cream); background:rgba(255,255,255,.05);
+    border:1px solid rgba(214,177,106,.3); border-radius:11px;
+    padding:13px 8px; cursor:pointer; transition:.15s;
+  }
+  .answers button:hover:not(:disabled){background:rgba(214,177,106,.16); border-color:var(--gold);}
+  .answers button:disabled{cursor:default;}
+  .answers button.correct{background:rgba(95,184,122,.25); border-color:var(--good); color:#dffbe6;}
+  .answers button.wrong{background:rgba(217,100,89,.25); border-color:var(--bad); color:#ffe2de;}
+
+  .feedback{
+    max-width:640px; width:100%; margin-top:16px; min-height:54px;
+    text-align:center; font-size:14px; line-height:1.5;
+  }
+  .feedback .verdict{font-family:'Playfair Display',serif; font-size:18px; font-weight:700;}
+  .feedback .verdict.ok{color:var(--good);}
+  .feedback .verdict.no{color:var(--bad);}
+  .feedback .explain{color:rgba(244,236,216,.7); margin-top:4px;}
+
+  .next{
+    margin-top:18px; font-family:'Playfair Display',serif; font-weight:700;
+    font-size:16px; letter-spacing:.5px;
+    background:var(--gold); color:#241c0a; border:none;
+    padding:13px 34px; border-radius:30px; cursor:pointer;
+    box-shadow:0 6px 18px rgba(214,177,106,.3); transition:.15s; opacity:0; pointer-events:none;
+  }
+  .next.show{opacity:1; pointer-events:auto;}
+  .next:hover{transform:translateY(-2px); box-shadow:0 9px 22px rgba(214,177,106,.4);}
+
+  @media (max-width:520px){
+    .card{width:46px; height:66px;}
+    .card .pip{font-size:24px;}
+    .card .corner .r{font-size:13px;}
+    .answers{grid-template-columns:repeat(2,1fr);}
+  }
+</style>
+</head>
+<body>
+  <div class="head">
+    <h1>Какая комбинация?</h1>
+    <p>Твои 2 карты + 5 на столе. Назови лучшую руку из пяти карт.</p>
+  </div>
+
+  <div class="scoreboard">
+    <div class="stat"><span class="num" id="sCorrect">0</span><span class="lbl">верно</span></div>
+    <div class="stat"><span class="num" id="sTotal">0</span><span class="lbl">всего</span></div>
+    <div class="stat"><span class="num" id="sStreak">0</span><span class="lbl">подряд</span></div>
+  </div>
+
+  <div class="table-area">
+    <div class="zone-label">Стол (общие карты)</div>
+    <div class="row board" id="board"></div>
+    <div class="mine-tag">Твои карты</div>
+    <div class="row" id="hole"></div>
+  </div>
+
+  <div class="answers" id="answers"></div>
+  <div class="feedback" id="feedback"></div>
+  <button class="next" id="next">Следующая раздача →</button>
+
+<script>
+const CATS = ["Старшая карта","Пара","Две пары","Сет","Стрит","Флеш","Фулл-хаус","Каре","Стрит-флеш"];
+const SUITS = [{ch:"♠",red:false},{ch:"♥",red:true},{ch:"♦",red:true},{ch:"♣",red:false}];
+const RANKLBL = {11:"J",12:"Q",13:"K",14:"A"};
+const lbl = r => RANKLBL[r] || String(r);
+
+function hasStraight(ranks){
+  const set=new Set(ranks); if(set.has(14)) set.add(1);
+  const arr=[...set].sort((a,b)=>a-b); let run=1;
+  for(let i=1;i<arr.length;i++){
+    if(arr[i]===arr[i-1]+1){ if(++run>=5) return true; } else run=1;
+  }
+  return false;
+}
+function evaluate(cards){
+  const rc={}, suit={0:[],1:[],2:[],3:[]};
+  for(const c of cards){ rc[c.r]=(rc[c.r]||0)+1; suit[c.s].push(c.r); }
+  const counts=Object.values(rc).sort((a,b)=>b-a);
+  const ranks=cards.map(c=>c.r);
+  for(let s=0;s<4;s++) if(suit[s].length>=5 && hasStraight(suit[s])) return 8;
+  if(counts[0]===4) return 7;
+  if(counts[0]===3 && counts[1]>=2) return 6;
+  for(let s=0;s<4;s++) if(suit[s].length>=5) return 5;
+  if(hasStraight(ranks)) return 4;
+  if(counts[0]===3) return 3;
+  if(counts[0]===2 && counts[1]===2) return 2;
+  if(counts[0]===2) return 1;
+  return 0;
+}
+
+// возвращает индексы карт (в массиве all), формирующих комбинацию — для подсветки
+function winningCards(cards, cat){
+  const idx=[]; const rc={};
+  cards.forEach((c,i)=>{ (rc[c.r]=rc[c.r]||[]).push(i); });
+  const bySuit={0:[],1:[],2:[],3:[]}; cards.forEach((c,i)=>bySuit[c.s].push(i));
+
+  const consecRun = (pool)=>{ // pool: array of indices; найти 5 подряд по достоинству
+    const map={}; pool.forEach(i=>{ const r=cards[i].r; if(map[r]===undefined) map[r]=i; });
+    if(map[14]!==undefined && map[1]===undefined) map[1]=map[14];
+    const rs=Object.keys(map).map(Number).sort((a,b)=>a-b);
+    for(let s=0;s<=rs.length-5;s++){
+      let ok=true; for(let k=1;k<5;k++) if(rs[s+k]!==rs[s]+k){ok=false;break;}
+      if(ok) return [0,1,2,3,4].map(k=>map[rs[s]+k]);
+    }
+    return null;
+  };
+
+  if(cat===8){ for(let s=0;s<4;s++){ if(bySuit[s].length>=5){ const r=consecRun(bySuit[s]); if(r) return r; } } }
+  if(cat===7){ for(const r in rc) if(rc[r].length===4) return rc[r]; }
+  if(cat===6){
+    let trip=null,pair=null;
+    for(const r in rc){ if(rc[r].length>=3 && (!trip||+r>+trip)) trip=r; }
+    for(const r in rc){ if(r!==trip && rc[r].length>=2 && (!pair||+r>+pair)) pair=r; }
+    return [...rc[trip].slice(0,3), ...rc[pair].slice(0,2)];
+  }
+  if(cat===5){ for(let s=0;s<4;s++) if(bySuit[s].length>=5) return bySuit[s].slice(0,5); }
+  if(cat===4){ const r=consecRun(cards.map((_,i)=>i)); if(r) return r; }
+  if(cat===3){ for(const r in rc) if(rc[r].length===3) return rc[r]; }
+  if(cat===2){ const ps=Object.keys(rc).filter(r=>rc[r].length===2).map(Number).sort((a,b)=>b-a); return [...rc[ps[0]],...rc[ps[1]]]; }
+  if(cat===1){ for(const r in rc) if(rc[r].length===2) return rc[r]; }
+  // старшая карта — самая высокая
+  let hi=0,hii=-1; cards.forEach((c,i)=>{ if(c.r>hi){hi=c.r;hii=i;} }); return [hii];
+}
+
+let deck=[], hole=[], board=[], all=[], answer=-1, locked=false;
+let correct=0,total=0,streak=0;
+
+function newDeck(){ const d=[]; for(let r=2;r<=14;r++) for(let s=0;s<4;s++) d.push({r,s}); return d; }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+function cardHTML(c, cls){
+  const s=SUITS[c.s];
+  return `<div class="card ${s.red?'red':''} ${cls||''}" data-i="">
+    <div class="corner"><div class="r">${lbl(c.r)}</div><div class="s">${s.ch}</div></div>
+    <div class="pip">${s.ch}</div></div>`;
+}
+
+function deal(){
+  deck=shuffle(newDeck());
+  hole=[deck.pop(),deck.pop()];
+  board=[deck.pop(),deck.pop(),deck.pop(),deck.pop(),deck.pop()];
+  all=[...hole,...board];
+  answer=evaluate(all);
+  locked=false;
+
+  document.getElementById('board').innerHTML = board.map((c,i)=>{
+    const el=cardHTML(c); return el.replace('data-i=""',`data-i="${2+i}"`);
+  }).join('');
+  document.getElementById('hole').innerHTML = hole.map((c,i)=>{
+    const el=cardHTML(c,'mine'); return el.replace('data-i=""',`data-i="${i}"`);
+  }).join('');
+  document.querySelectorAll('#board .card').forEach((el,i)=>el.style.animationDelay=(i*0.06)+'s');
+  document.querySelectorAll('#hole .card').forEach((el,i)=>el.style.animationDelay=((board.length+i)*0.06)+'s');
+
+  const ans=document.getElementById('answers');
+  ans.innerHTML = CATS.map((c,i)=>`<button data-cat="${i}">${c}</button>`).join('');
+  ans.querySelectorAll('button').forEach(b=>b.onclick=()=>guess(+b.dataset.cat,b));
+
+  document.getElementById('feedback').innerHTML='';
+  document.getElementById('next').classList.remove('show');
+}
+
+function guess(cat,btn){
+  if(locked) return; locked=true;
+  total++; 
+  const right = cat===answer;
+  if(right){ correct++; streak++; } else { streak=0; }
+
+  document.querySelectorAll('#answers button').forEach(b=>{
+    b.disabled=true;
+    if(+b.dataset.cat===answer) b.classList.add('correct');
+  });
+  if(!right) btn.classList.add('wrong');
+
+  // подсветка карт комбинации
+  const win=winningCards(all,answer);
+  document.querySelectorAll('.card').forEach(el=>{
+    const i=+el.dataset.i;
+    if(win.includes(i)) el.classList.add('win'); else el.classList.add('dim');
+  });
+
+  const fb=document.getElementById('feedback');
+  const winLbls = win.map(i=>{ const c=all[i]; return lbl(c.r)+SUITS[c.s].ch; }).join(' ');
+  fb.innerHTML = right
+    ? `<div class="verdict ok">Верно — ${CATS[answer]}</div><div class="explain">Комбинацию собирают: ${winLbls}</div>`
+    : `<div class="verdict no">Это ${CATS[answer]}</div><div class="explain">Её собирают: ${winLbls}</div>`;
+
+  document.getElementById('sCorrect').textContent=correct;
+  document.getElementById('sTotal').textContent=total;
+  document.getElementById('sStreak').textContent=streak;
+  document.getElementById('next').classList.add('show');
+}
+
+document.getElementById('next').onclick=deal;
+document.addEventListener('keydown',e=>{ if(e.code==='Space'||e.code==='Enter'){ if(locked) deal(); }});
+deal();
+</script>
+</body>
+</html>
