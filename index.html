@@ -212,11 +212,43 @@ function winningCards(cards, cat){
   let hi=0,hii=-1; cards.forEach((c,i)=>{ if(c.r>hi){hi=c.r;hii=i;} }); return [hii];
 }
 
-let deck=[], hole=[], board=[], all=[], answer=-1, locked=false;
+let hole=[], board=[], all=[], answer=-1, locked=false;
 let correct=0,total=0,streak=0;
+let bag=[];
 
 function newDeck(){ const d=[]; for(let r=2;r<=14;r++) for(let s=0;s<4;s++) d.push({r,s}); return d; }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+// все 9 категорий по кругу -> равномерное распределение
+function nextTarget(){ if(!bag.length) bag=shuffle([0,1,2,3,4,5,6,7,8]); return bag.pop(); }
+
+// строит 7 карт, у которых ЛУЧШАЯ комбинация = ровно target
+function genHand(target){
+  const ALLR=[2,3,4,5,6,7,8,9,10,11,12,13,14];
+  const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+  const rnd=a=>a[Math.floor(Math.random()*a.length)];
+  const straightRanks=()=>{const st=1+Math.floor(Math.random()*10);return [0,1,2,3,4].map(k=>{const v=st+k;return v===1?14:v;});};
+  for(let tries=0;tries<4000;tries++){
+    const used=new Set(), cards=[], suitCount=[0,0,0,0], rankCount={};
+    let ok=true;
+    const take=(r,s)=>{const k=r+'_'+s;if(used.has(k)||suitCount[s]>=5)return false;used.add(k);cards.push({r,s});suitCount[s]++;rankCount[r]=(rankCount[r]||0)+1;return true;};
+    const takeRankSuits=(r,suits)=>{for(const s of suits)if(!take(r,s))ok=false;};
+    const junk=()=>{const ranks=shuf(ALLR).filter(r=>!rankCount[r]);for(const r of ranks)for(const s of shuf([0,1,2,3]))if(suitCount[s]<4&&!used.has(r+'_'+s)){take(r,s);return true;}return false;};
+    if(target===8){const rs=straightRanks();const s=rnd([0,1,2,3]);rs.forEach(r=>take(r,s));}
+    else if(target===7){const r=rnd(ALLR);[0,1,2,3].forEach(s=>take(r,s));}
+    else if(target===6){const o=shuf(ALLR);takeRankSuits(o[0],shuf([0,1,2,3]).slice(0,3));takeRankSuits(o[1],shuf([0,1,2,3]).slice(0,2));}
+    else if(target===5){const s=rnd([0,1,2,3]);shuf(ALLR).slice(0,5).forEach(r=>take(r,s));}
+    else if(target===4){const rs=straightRanks();const su=shuf([0,1,2,3]);rs.forEach((r,i)=>take(r,i<2?su[0]:su[1+(i%3)]));}
+    else if(target===3){const r=rnd(ALLR);takeRankSuits(r,shuf([0,1,2,3]).slice(0,3));}
+    else if(target===2){const o=shuf(ALLR);takeRankSuits(o[0],shuf([0,1,2,3]).slice(0,2));takeRankSuits(o[1],shuf([0,1,2,3]).slice(0,2));}
+    else if(target===1){const r=rnd(ALLR);takeRankSuits(r,shuf([0,1,2,3]).slice(0,2));}
+    while(ok&&cards.length<7)if(!junk())ok=false;
+    if(ok&&cards.length===7&&evaluate(cards)===target)return shuf(cards);
+  }
+  // страховка: чистый перебор
+  for(let t=0;t<20000;t++){const d=shuffle(newDeck());const c=d.slice(0,7);if(evaluate(c)===target)return c;}
+  return shuffle(newDeck()).slice(0,7);
+}
 
 function cardHTML(c, cls){
   const s=SUITS[c.s];
@@ -226,9 +258,10 @@ function cardHTML(c, cls){
 }
 
 function deal(){
-  deck=shuffle(newDeck());
-  hole=[deck.pop(),deck.pop()];
-  board=[deck.pop(),deck.pop(),deck.pop(),deck.pop(),deck.pop()];
+  const target=nextTarget();
+  const cards=genHand(target);
+  hole=cards.slice(0,2);
+  board=cards.slice(2);
   all=[...hole,...board];
   answer=evaluate(all);
   locked=false;
